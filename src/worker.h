@@ -24,6 +24,7 @@
 #include "echo.h"
 #include "tun.h"
 
+#include <netinet/in.h>
 #include <string>
 #include <sys/types.h>
 
@@ -69,11 +70,11 @@ protected:
         };
     }; // size = 5
 
-    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq) { return true; }
+    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq) { return true; }
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp) { } // to echoSendPayloadBuffer
     virtual void handleTimeout() { }
 
-    void sendEcho(const TunnelHeader::Magic &magic, int type, int length, uint32_t realIp, bool reply, uint16_t id, uint16_t seq);
+    void sendEcho(const TunnelHeader::Magic &magic, int type, int length, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     void sendToTun(int length); // from echoReceivePayloadBuffer
 
     void setTimeout(Time delta);

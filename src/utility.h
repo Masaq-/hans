@@ -20,12 +20,14 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include <netinet/in.h>
 #include <string>
 #include <stdint.h>
 
 class Utility
 {
 public:
+    static std::string formatIp(struct in6_addr ip);
     static std::string formatIp(uint32_t ip);
     static int rand();
 };

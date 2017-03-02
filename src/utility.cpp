@@ -25,6 +25,15 @@
 
 using namespace std;
 
+string Utility::formatIp(struct in6_addr ip)
+{
+    if (ip.s6_addr32[0] == 0 && ip.s6_addr32[1] == 0 && ip.s6_addr[8] == 0 && ip.s6_addr[9] == 0 && ip.s6_addr[10] == 0xff && ip.s6_addr[11] == 0xff)
+        return formatIp(ntohl(ip.s6_addr32[3]));
+    char buffer[40];
+    sprintf(buffer, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ip.s6_addr[0],ip.s6_addr[1],ip.s6_addr[2],ip.s6_addr[3],ip.s6_addr[4],ip.s6_addr[5],ip.s6_addr[6],ip.s6_addr[7],ip.s6_addr[8],ip.s6_addr[9],ip.s6_addr[10],ip.s6_addr[11],ip.s6_addr[12],ip.s6_addr[13],ip.s6_addr[14],ip.s6_addr[15]);
+    return buffer;
+}
+
 string Utility::formatIp(uint32_t ip)
 {
     char buffer[16];

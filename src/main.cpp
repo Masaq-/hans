@@ -221,7 +221,27 @@ int main(int argc, char *argv[])
                 serverIp = *(uint32_t *)he->h_addr;
             }
 
-            worker = new Client(mtu, device, ntohl(serverIp), maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp);
+            struct in6_addr in6_serverIp = { 0 };
+            in6_serverIp.s6_addr32[3] = serverIp;
+/*
+            in6_serverIp.s6_addr[0]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[1]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[2]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[3]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[4]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[5]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[6]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[7]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[8]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[9]  = 0x00; // IPv6
+            in6_serverIp.s6_addr[10] = 0x00; // IPv6
+            in6_serverIp.s6_addr[11] = 0x00; // IPv6
+            in6_serverIp.s6_addr[12] = 0x00; // IPv6
+            in6_serverIp.s6_addr[13] = 0x00; // IPv6
+            in6_serverIp.s6_addr[14] = 0x00; // IPv6
+            in6_serverIp.s6_addr[15] = 0x01; // IPv6
+*/
+            worker = new Client(mtu, device, in6_serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp);
         }
 
         if (!foreground)

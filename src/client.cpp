@@ -32,7 +32,7 @@ using namespace std;
 
 const Worker::TunnelHeader::Magic Client::magic("hanc");
 
-Client::Client(int tunnelMtu, const char *deviceName, uint32_t serverIp,
+Client::Client(int tunnelMtu, const char *deviceName, struct in6_addr serverIp,
                int maxPolls, const char *passphrase, uid_t uid, gid_t gid,
                bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp)
 : Worker(tunnelMtu, deviceName, false, uid, gid), auth(passphrase)
@@ -89,9 +89,13 @@ void Client::sendChallengeResponse(int dataLength)
     setTimeout(5000);
 }
 
-bool Client::handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq)
+bool Client::handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
-    if (realIp != serverIp || !reply)
+    for (int i ; i < 4 ; ++i)
+        if (realIp.s6_addr32[i] != serverIp.s6_addr32[i])
+            return false;
+
+    if (!reply)
         return false;
 
     if (header.magic != Server::magic)

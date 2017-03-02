@@ -28,7 +28,7 @@
 class Client : public Worker
 {
 public:
-    Client(int tunnelMtu, const char *deviceName, uint32_t serverIp,
+    Client(int tunnelMtu, const char *deviceName, struct in6_addr serverIp,
            int maxPolls, const char *passphrase, uid_t uid, gid_t gid,
            bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp);
     virtual ~Client();
@@ -45,7 +45,7 @@ protected:
         STATE_ESTABLISHED
     };
 
-    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq);
+    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
     virtual void handleTimeout();
 
@@ -59,7 +59,7 @@ protected:
 
     Auth auth;
 
-    uint32_t serverIp;
+    struct in6_addr serverIp;
     uint32_t clientIp;
     uint32_t desiredIp;
 

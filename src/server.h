@@ -68,7 +68,7 @@ protected:
             uint16_t seq;
         };
 
-        uint32_t realIp;
+        struct in6_addr realIp;
         uint32_t tunnelIp;
 
         std::queue<Packet> pendingPackets;
@@ -82,10 +82,20 @@ protected:
         Auth::Challenge challenge;
     };
 
-    typedef std::vector<ClientData> ClientList;
-    typedef std::map<uint32_t, int> ClientIpMap;
+    struct in6_less {
+        bool operator() (const struct in6_addr& a, const struct in6_addr& b) const {
+            for (int i = 0 ; i < 16 ; ++i)
+                if (a.s6_addr[i] < b.s6_addr[i])
+                    return true;
+            return false;
+        }
+    };
 
-    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq);
+    typedef std::vector<ClientData> ClientList;
+    typedef std::map<struct in6_addr, int, in6_less> ClientIpMap;
+    typedef std::map<uint32_t, int> ClientTunMap;
+
+    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
     virtual void handleTimeout();
 
@@ -93,7 +103,7 @@ protected:
 
     void serveTun(ClientData *client);
 
-    void handleUnknownClient(const TunnelHeader &header, int dataLength, uint32_t realIp, uint16_t echoId, uint16_t echoSeq);
+    void handleUnknownClient(const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq);
     void removeClient(ClientData *client);
 
     void sendChallenge(ClientData *client);
@@ -108,7 +118,7 @@ protected:
     void releaseTunnelIp(uint32_t tunnelIp);
 
     ClientData *getClientByTunnelIp(uint32_t ip);
-    ClientData *getClientByRealIp(uint32_t ip);
+    ClientData *getClientByRealIp(struct in6_addr ip);
 
     Auth auth;
 
@@ -120,7 +130,7 @@ protected:
 
     ClientList clientList;
     ClientIpMap clientRealIpMap;
-    ClientIpMap clientTunnelIpMap;
+    ClientTunMap clientTunnelIpMap;
 };
 
 #endif

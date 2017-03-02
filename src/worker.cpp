@@ -60,7 +60,11 @@ Worker::Worker(int tunnelMtu, const char *deviceName, bool answerEcho, uid_t uid
 
     try
     {
-        echo = new Echo(tunnelMtu + sizeof(TunnelHeader));
+        bool v6 = false;
+/*
+        v6 = true; // IPv6
+*/
+        echo = new Echo(tunnelMtu + sizeof(TunnelHeader), v6);
         tun = new Tun(deviceName, tunnelMtu);
     }
     catch (...)
@@ -78,7 +82,7 @@ Worker::~Worker()
     delete tun;
 }
 
-void Worker::sendEcho(const TunnelHeader::Magic &magic, int type, int length, uint32_t realIp, bool reply, uint16_t id, uint16_t seq)
+void Worker::sendEcho(const TunnelHeader::Magic &magic, int type, int length, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
     if (length > payloadBufferSize())
         throw Exception("packet too big");
@@ -149,7 +153,7 @@ void Worker::run()
         {
             bool reply;
             uint16_t id, seq;
-            uint32_t ip;
+            struct in6_addr ip;
 
             int dataLength = echo->receive(ip, reply, id, seq);
             if (dataLength != -1)

@@ -49,7 +49,7 @@ Server::~Server()
 
 }
 
-void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, uint32_t realIp, uint16_t echoId, uint16_t echoSeq)
+void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq)
 {
     ClientData client;
     client.realIp = realIp;
@@ -143,7 +143,7 @@ void Server::sendReset(ClientData *client)
     sendEchoToClient(client, TunnelHeader::TYPE_RESET_CONNECTION, 0);
 }
 
-bool Server::handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq)
+bool Server::handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
     if (reply)
         return false;
@@ -207,14 +207,14 @@ bool Server::handleEchoData(const TunnelHeader &header, int dataLength, uint32_t
 
 Server::ClientData *Server::getClientByTunnelIp(uint32_t ip)
 {
-    ClientIpMap::iterator clientMapIterator = clientTunnelIpMap.find(ip);
+    ClientTunMap::iterator clientMapIterator = clientTunnelIpMap.find(ip);
     if (clientMapIterator == clientTunnelIpMap.end())
         return NULL;
 
     return &clientList[clientMapIterator->second];
 }
 
-Server::ClientData *Server::getClientByRealIp(uint32_t ip)
+Server::ClientData *Server::getClientByRealIp(struct in6_addr ip)
 {
     ClientIpMap::iterator clientMapIterator = clientRealIpMap.find(ip);
     if (clientMapIterator == clientRealIpMap.end())
