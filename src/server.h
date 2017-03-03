@@ -31,7 +31,7 @@
 class Server : public Worker
 {
 public:
-    Server(int tunnelMtu, const char *deviceName, const char *passphrase, uint32_t network, bool answerEcho, uid_t uid, gid_t gid, int pollTimeout);
+    Server(int tunnelMtu, const char *deviceName, const char *passphrase, uint32_t network, bool answerEcho, uid_t uid, gid_t gid, int pollTimeout, bool ICMP = true, bool ICMPv6 = false);
     virtual ~Server();
 
     // change some time:
@@ -68,6 +68,7 @@ protected:
             uint16_t seq;
         };
 
+        Echo* echo;
         struct in6_addr realIp;
         uint32_t tunnelIp;
 
@@ -92,10 +93,10 @@ protected:
     };
 
     typedef std::vector<ClientData> ClientList;
-    typedef std::map<struct in6_addr, int, in6_less> ClientIpMap;
-    typedef std::map<uint32_t, int> ClientTunMap;
+    typedef std::multimap<struct in6_addr, int, in6_less> ClientIpMap;
+    typedef std::multimap<uint32_t, int> ClientTunMap;
 
-    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
+    virtual bool handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
     virtual void handleTimeout();
 
@@ -103,7 +104,7 @@ protected:
 
     void serveTun(ClientData *client);
 
-    void handleUnknownClient(const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq);
+    void handleUnknownClient(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq);
     void removeClient(ClientData *client);
 
     void sendChallenge(ClientData *client);

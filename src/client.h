@@ -30,7 +30,7 @@ class Client : public Worker
 public:
     Client(int tunnelMtu, const char *deviceName, struct in6_addr serverIp,
            int maxPolls, const char *passphrase, uid_t uid, gid_t gid,
-           bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp);
+           bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp, bool ICMPv6 = false);
     virtual ~Client();
 
     virtual void run();
@@ -45,7 +45,7 @@ protected:
         STATE_ESTABLISHED
     };
 
-    virtual bool handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
+    virtual bool handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
     virtual void handleTimeout();
 

@@ -32,8 +32,8 @@ using namespace std;
 
 const Worker::TunnelHeader::Magic Server::magic("hans");
 
-Server::Server(int tunnelMtu, const char *deviceName, const char *passphrase, uint32_t network, bool answerEcho, uid_t uid, gid_t gid, int pollTimeout)
-    : Worker(tunnelMtu, deviceName, answerEcho, uid, gid), auth(passphrase)
+Server::Server(int tunnelMtu, const char *deviceName, const char *passphrase, uint32_t network, bool answerEcho, uid_t uid, gid_t gid, int pollTimeout, bool ICMP, bool ICMPv6)
+    : Worker(tunnelMtu, deviceName, answerEcho, uid, gid, ICMP, ICMPv6), auth(passphrase)
 {
     this->network = network & 0xffffff00;
     this->pollTimeout = pollTimeout;
@@ -49,9 +49,10 @@ Server::~Server()
 
 }
 
-void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq)
+void Server::handleUnknownClient(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq)
 {
     ClientData client;
+    client.echo = echo;
     client.realIp = realIp;
     client.maxPolls = 1;
 
@@ -64,7 +65,7 @@ void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, str
         return;
     }
 
-    ClientConnectData *connectData = (ClientConnectData *)echoReceivePayloadBuffer();
+    ClientConnectData *connectData = (ClientConnectData *)echoReceivePayloadBuffer(client.echo);
 
     client.maxPolls = connectData->maxPolls;
     client.state = ClientData::STATE_NEW;
@@ -79,8 +80,8 @@ void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, str
 
         // add client to list
         clientList.push_back(client);
-        clientRealIpMap[realIp] = clientList.size() - 1;
-        clientTunnelIpMap[client.tunnelIp] = clientList.size() - 1;
+        clientRealIpMap.insert(pair<struct in6_addr, int>(realIp, clientList.size() - 1));
+        clientTunnelIpMap.insert(pair<uint32_t, int>(client.tunnelIp, clientList.size() - 1));
     }
     else
     {
@@ -93,7 +94,7 @@ void Server::sendChallenge(ClientData *client)
 {
     syslog(LOG_DEBUG, "sending challenge to: %s\n", Utility::formatIp(client->realIp).c_str());
 
-    memcpy(echoSendPayloadBuffer(), &client->challenge[0], client->challenge.size());
+    memcpy(echoSendPayloadBuffer(client->echo), &client->challenge[0], client->challenge.size());
     sendEchoToClient(client, TunnelHeader::TYPE_CHALLENGE, client->challenge.size());
 
     client->state = ClientData::STATE_CHALLENGE_SENT;
@@ -105,7 +106,7 @@ void Server::removeClient(ClientData *client)
 
     releaseTunnelIp(client->tunnelIp);
 
-    int nr = clientRealIpMap[client->realIp];
+    int nr = clientRealIpMap.find(client->realIp)->second;
 
     clientRealIpMap.erase(client->realIp);
     clientTunnelIpMap.erase(client->tunnelIp);
@@ -117,7 +118,7 @@ void Server::checkChallenge(ClientData *client, int length)
 {
     Auth::Response rightResponse = auth.getResponse(client->challenge);
 
-    if (length != sizeof(Auth::Response) || memcmp(&rightResponse, echoReceivePayloadBuffer(), length) != 0)
+    if (length != sizeof(Auth::Response) || memcmp(&rightResponse, echoReceivePayloadBuffer(client->echo), length) != 0)
     {
         syslog(LOG_DEBUG, "wrong challenge response\n");
 
@@ -127,7 +128,7 @@ void Server::checkChallenge(ClientData *client, int length)
         return;
     }
 
-    uint32_t *ip = (uint32_t *)echoSendPayloadBuffer();
+    uint32_t *ip = (uint32_t *)echoSendPayloadBuffer(client->echo);
     *ip = htonl(client->tunnelIp);
 
     sendEchoToClient(client, TunnelHeader::TYPE_CONNECTION_ACCEPT, sizeof(uint32_t));
@@ -143,7 +144,7 @@ void Server::sendReset(ClientData *client)
     sendEchoToClient(client, TunnelHeader::TYPE_RESET_CONNECTION, 0);
 }
 
-bool Server::handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
     if (reply)
         return false;
@@ -154,7 +155,7 @@ bool Server::handleEchoData(const TunnelHeader &header, int dataLength, struct i
     ClientData *client = getClientByRealIp(realIp);
     if (client == NULL)
     {
-        handleUnknownClient(header, dataLength, realIp, id, seq);
+        handleUnknownClient(echo, header, dataLength, realIp, id, seq);
         return true;
     }
 
@@ -192,7 +193,7 @@ bool Server::handleEchoData(const TunnelHeader &header, int dataLength, struct i
                     return true;
                 }
 
-                sendToTun(dataLength);
+                sendToTun(client->echo, dataLength);
                 return true;
             }
             break;
@@ -251,7 +252,7 @@ void Server::pollReceived(ClientData *client, uint16_t echoId, uint16_t echoSeq)
     if (client->pendingPackets.size() > 0)
     {
         Packet &packet = client->pendingPackets.front();
-        memcpy(echoSendPayloadBuffer(), &packet.data[0], packet.data.size());
+        memcpy(echoSendPayloadBuffer(client->echo), &packet.data[0], packet.data.size());
         client->pendingPackets.pop();
 
         DEBUG_ONLY(printf("pending packet: %d bytes\n", packet.data.size()));
@@ -265,7 +266,7 @@ void Server::sendEchoToClient(ClientData *client, int type, int dataLength)
 {
     if (client->maxPolls == 0)
     {
-        sendEcho(magic, type, dataLength, client->realIp, true, client->pollIds.front().id, client->pollIds.front().seq);
+        sendEcho(client->echo, magic, type, dataLength, client->realIp, true, client->pollIds.front().id, client->pollIds.front().seq);
         return;
     }
 
@@ -275,7 +276,7 @@ void Server::sendEchoToClient(ClientData *client, int type, int dataLength)
         client->pollIds.pop();
 
         DEBUG_ONLY(printf("sending -> %d\n", client->pollIds.size()));
-        sendEcho(magic, type, dataLength, client->realIp, true, echoId.id, echoId.seq);
+        sendEcho(client->echo, magic, type, dataLength, client->realIp, true, echoId.id, echoId.seq);
         return;
     }
 
@@ -291,7 +292,7 @@ void Server::sendEchoToClient(ClientData *client, int type, int dataLength)
     Packet &packet = client->pendingPackets.back();
     packet.type = type;
     packet.data.resize(dataLength);
-    memcpy(&packet.data[0], echoReceivePayloadBuffer(), dataLength);
+    memcpy(&packet.data[0], echoReceivePayloadBuffer(client->echo), dataLength);
 }
 
 void Server::releaseTunnelIp(uint32_t tunnelIp)

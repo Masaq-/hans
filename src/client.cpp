@@ -34,8 +34,8 @@ const Worker::TunnelHeader::Magic Client::magic("hanc");
 
 Client::Client(int tunnelMtu, const char *deviceName, struct in6_addr serverIp,
                int maxPolls, const char *passphrase, uid_t uid, gid_t gid,
-               bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp)
-: Worker(tunnelMtu, deviceName, false, uid, gid), auth(passphrase)
+               bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp, bool ICMPv6)
+: Worker(tunnelMtu, deviceName, false, uid, gid, !ICMPv6, ICMPv6), auth(passphrase)
 {
     this->serverIp = serverIp;
     this->clientIp = INADDR_NONE;
@@ -56,7 +56,7 @@ Client::~Client()
 
 void Client::sendConnectionRequest()
 {
-    Server::ClientConnectData *connectData = (Server::ClientConnectData *)echoSendPayloadBuffer();
+    Server::ClientConnectData *connectData = (Server::ClientConnectData *)echoSendPayloadBuffer(echo[0] ? echo[0] : echo[1]);
     connectData->maxPolls = maxPolls;
     connectData->desiredIp = desiredIp;
 
@@ -79,17 +79,17 @@ void Client::sendChallengeResponse(int dataLength)
 
     vector<char> challenge;
     challenge.resize(dataLength);
-    memcpy(&challenge[0], echoReceivePayloadBuffer(), dataLength);
+    memcpy(&challenge[0], echoReceivePayloadBuffer(echo[0] ? echo[0] : echo[1]), dataLength);
 
     Auth::Response response = auth.getResponse(challenge);
 
-    memcpy(echoSendPayloadBuffer(), (char *)&response, sizeof(Auth::Response));
+    memcpy(echoSendPayloadBuffer(echo[0] ? echo[0] : echo[1]), (char *)&response, sizeof(Auth::Response));
     sendEchoToServer(TunnelHeader::TYPE_CHALLENGE_RESPONSE, sizeof(Auth::Response));
 
     setTimeout(5000);
 }
 
-bool Client::handleEchoData(const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+bool Client::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
     for (int i ; i < 4 ; ++i)
         if (realIp.s6_addr32[i] != serverIp.s6_addr32[i])
@@ -133,7 +133,7 @@ bool Client::handleEchoData(const TunnelHeader &header, int dataLength, struct i
 
                 syslog(LOG_INFO, "connection established");
 
-                uint32_t ip = ntohl(*(uint32_t *)echoReceivePayloadBuffer());
+                uint32_t ip = ntohl(*(uint32_t *)echoReceivePayloadBuffer(echo));
                 if (ip != clientIp)
                 {
                     if (privilegesDropped)
@@ -176,7 +176,7 @@ void Client::sendEchoToServer(int type, int dataLength)
     if (maxPolls == 0 && state == STATE_ESTABLISHED)
         setTimeout(KEEP_ALIVE_INTERVAL);
 
-    sendEcho(magic, type, dataLength, serverIp, false, nextEchoId, nextEchoSequence);
+    sendEcho(echo[0] ? echo[0] : echo[1], magic, type, dataLength, serverIp, false, nextEchoId, nextEchoSequence);
 
     if (changeEchoId)
         nextEchoId = nextEchoId + 38543; // some random prime
@@ -206,7 +206,7 @@ void Client::handleDataFromServer(int dataLength)
         return;
     }
 
-    sendToTun(dataLength);
+    sendToTun(echo[0] ? echo[0] : echo[1], dataLength);
 
     if (maxPolls != 0)
         sendEchoToServer(TunnelHeader::TYPE_POLL, 0);

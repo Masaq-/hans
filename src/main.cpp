@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
     {
         if (isServer)
         {
-            worker = new Server(mtu, device, password, network, answerPing, uid, gid, 5000);
+            worker = new Server(mtu, device, password, network, answerPing, uid, gid, 5000, true, true);
         }
         else
         {
@@ -223,7 +223,9 @@ int main(int argc, char *argv[])
 
             struct in6_addr in6_serverIp = { 0 };
             in6_serverIp.s6_addr32[3] = serverIp;
+            bool v6 = false;
 /*
+            v6 = true; // IPv6
             in6_serverIp.s6_addr[0]  = 0x00; // IPv6
             in6_serverIp.s6_addr[1]  = 0x00; // IPv6
             in6_serverIp.s6_addr[2]  = 0x00; // IPv6
@@ -241,7 +243,7 @@ int main(int argc, char *argv[])
             in6_serverIp.s6_addr[14] = 0x00; // IPv6
             in6_serverIp.s6_addr[15] = 0x01; // IPv6
 */
-            worker = new Client(mtu, device, in6_serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp);
+            worker = new Client(mtu, device, in6_serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp, v6);
         }
 
         if (!foreground)
