@@ -208,42 +208,23 @@ int main(int argc, char *argv[])
         }
         else
         {
-            uint32_t serverIp = inet_addr(serverName);
-            if (serverIp == INADDR_NONE)
-            {
-                struct hostent* he = gethostbyname(serverName);
-                if (!he)
-                {
-                    syslog(LOG_ERR, "gethostbyname: %s", hstrerror(h_errno));
-                    return 1;
-                }
+            struct in6_addr serverIp = { 0 };
+            struct addrinfo* ainfo;
 
-                serverIp = *(uint32_t *)he->h_addr;
+            int ai = getaddrinfo(serverName, NULL, NULL, &ainfo);
+
+            if (ai)
+            {
+                syslog(LOG_ERR, "getaddrinfo: %s", gai_strerror(ai));
+                return 1;
             }
 
-            struct in6_addr in6_serverIp = { 0 };
-            in6_serverIp.s6_addr32[3] = serverIp;
-            bool v6 = false;
-/*
-            v6 = true; // IPv6
-            in6_serverIp.s6_addr[0]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[1]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[2]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[3]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[4]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[5]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[6]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[7]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[8]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[9]  = 0x00; // IPv6
-            in6_serverIp.s6_addr[10] = 0x00; // IPv6
-            in6_serverIp.s6_addr[11] = 0x00; // IPv6
-            in6_serverIp.s6_addr[12] = 0x00; // IPv6
-            in6_serverIp.s6_addr[13] = 0x00; // IPv6
-            in6_serverIp.s6_addr[14] = 0x00; // IPv6
-            in6_serverIp.s6_addr[15] = 0x01; // IPv6
-*/
-            worker = new Client(mtu, device, in6_serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp, v6);
+            if (ainfo->ai_family == AF_INET)
+                serverIp.s6_addr32[3] = ((sockaddr_in*)(ainfo->ai_addr))->sin_addr.s_addr;
+            else
+                serverIp = ((sockaddr_in6*)(ainfo->ai_addr))->sin6_addr;
+
+            worker = new Client(mtu, device, serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp, ainfo->ai_family == AF_INET6);
         }
 
         if (!foreground)

@@ -192,7 +192,7 @@ void Worker::run()
                 throw Exception("tunnel closed");
 
             if (echo[e ? 0 : 1])
-                memcpy(echo[e ? 0 : 1]->sendPayloadBuffer(), echo[e ? 1 : 0]->sendPayloadBuffer(), dataLength);
+                memcpy(echo[e ? 0 : 1]->sendPayloadBuffer(), echo[e ? 1 : 0]->sendPayloadBuffer(), dataLength + headerSize());
 
             if (dataLength != -1)
                 handleTunData(dataLength, sourceIp, destIp);
