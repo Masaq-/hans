@@ -27,6 +27,7 @@
 #include <queue>
 #include <vector>
 #include <set>
+#include <list>
 
 class Server : public Worker
 {
@@ -85,16 +86,13 @@ protected:
 
     struct in6_less {
         bool operator() (const struct in6_addr& a, const struct in6_addr& b) const {
-            for (int i = 0 ; i < 16 ; ++i)
-                if (a.s6_addr[i] < b.s6_addr[i])
-                    return true;
-            return false;
+            return memcmp(&a, &b, sizeof(b)) < 0;
         }
     };
 
-    typedef std::vector<ClientData> ClientList;
-    typedef std::multimap<struct in6_addr, int, in6_less> ClientIpMap;
-    typedef std::multimap<uint32_t, int> ClientTunMap;
+    typedef std::list<ClientData> ClientList;
+    typedef std::map<struct in6_addr, ClientList::iterator, in6_less> ClientIpMap;
+    typedef std::map<uint32_t, ClientList::iterator> ClientTunMap;
 
     virtual bool handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
@@ -105,7 +103,7 @@ protected:
     void serveTun(ClientData *client);
 
     void handleUnknownClient(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq);
-    void removeClient(ClientData *client);
+    ClientList::iterator removeClient(ClientData *client);
 
     void sendChallenge(ClientData *client);
     void checkChallenge(ClientData *client, int dataLength);
