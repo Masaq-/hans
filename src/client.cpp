@@ -91,7 +91,7 @@ void Client::sendChallengeResponse(int dataLength)
 
 bool Client::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
 {
-    for (int i ; i < 4 ; ++i)
+    for (int i = 0 ; i < 4 ; ++i)
         if (realIp.s6_addr32[i] != serverIp.s6_addr32[i])
             return false;
 
