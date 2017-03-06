@@ -124,10 +124,8 @@ int Echo::receive(struct in6_addr &realIp, bool &reply, uint16_t &id, uint16_t &
     } else {
         realIp.s6_addr32[0] = 0;
         realIp.s6_addr32[1] = 0;
-        realIp.s6_addr[8]   = 0;
-        realIp.s6_addr[9]   = 0;
-        realIp.s6_addr[10]  = 0xff;
-        realIp.s6_addr[11]  = 0xff;
+        realIp.s6_addr16[4] = 0;
+        realIp.s6_addr16[5] = 0xffff;
         realIp.s6_addr32[3] = ((sockaddr_in*)(&source))->sin_addr.s_addr;
     }
     reply = header->type == ( v6 ? 129 : 0 );

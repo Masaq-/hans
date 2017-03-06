@@ -227,9 +227,9 @@ int main(int argc, char *argv[])
             struct addrinfo proto = { 0 };
             struct addrinfo* ainfo;
 
-            if (ipv4 && !ipv6) proto.ai_family == AF_INET;
-            else if (!ipv4 && ipv6) proto.ai_family == AF_INET6;
-            else if (ipv4 && ipv6) proto.ai_family == AF_UNSPEC;
+            if (ipv4 && !ipv6) proto.ai_family = AF_INET;
+            else if (!ipv4 && ipv6) proto.ai_family = AF_INET6;
+            else if (ipv4 && ipv6) proto.ai_family = AF_UNSPEC;
             int ai = getaddrinfo(serverName, NULL, &proto, &ainfo);
 
             if (ai)
@@ -241,15 +241,13 @@ int main(int argc, char *argv[])
             if (ainfo->ai_family == AF_INET) {
                 serverIp.s6_addr32[0] = 0;
                 serverIp.s6_addr32[1] = 0;
-                serverIp.s6_addr[8]   = 0;
-                serverIp.s6_addr[9]   = 0;
-                serverIp.s6_addr[10]  = 0xff;
-                serverIp.s6_addr[11]  = 0xff;
+                serverIp.s6_addr16[4] = 0;
+                serverIp.s6_addr16[5] = 0xffff;
                 serverIp.s6_addr32[3] = ((sockaddr_in*)(ainfo->ai_addr))->sin_addr.s_addr;
             } else
                 serverIp = ((sockaddr_in6*)(ainfo->ai_addr))->sin6_addr;
 
-            worker = new Client(mtu, device, serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp, ainfo->ai_family == AF_INET6);
+            worker = new Client(mtu, device, serverIp, maxPolls, password, uid, gid, changeEchoId, changeEchoSeq, clientIp, ipv6 && (ainfo->ai_family == AF_INET6));
 
             freeaddrinfo(ainfo);
         }
