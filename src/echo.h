@@ -20,6 +20,8 @@
 #ifndef ECHO_H
 #define ECHO_H
 
+#include "utility.h"
+
 #include <string>
 #include <stdint.h>
 
@@ -31,8 +33,8 @@ public:
 
     int getFd() { return fd; }
 
-    void send(int payloadLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq);
-    int receive(struct in6_addr &realIp, bool &reply, uint16_t &id, uint16_t &seq);
+    void send(int payloadLength, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq);
+    int receive(in6_addr_union &realIp, bool &reply, uint16_t &id, uint16_t &seq);
 
     char *sendPayloadBuffer() { return sendBuffer + sendHeaderSize(); }
     char *receivePayloadBuffer() { return receiveBuffer + recvHeaderSize(); }

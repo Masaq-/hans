@@ -49,7 +49,7 @@ Server::~Server()
 
 }
 
-void Server::handleUnknownClient(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, uint16_t echoId, uint16_t echoSeq)
+void Server::handleUnknownClient(Echo* echo, const TunnelHeader &header, int dataLength, const in6_addr_union& realIp, uint16_t echoId, uint16_t echoSeq)
 {
     ClientData client;
     client.echo = echo;
@@ -80,8 +80,8 @@ void Server::handleUnknownClient(Echo* echo, const TunnelHeader &header, int dat
 
         // add client to list
         clientList.push_front(client);
-        clientRealIpMap.insert(pair<struct in6_addr, ClientList::iterator>(realIp, clientList.begin()));
-        clientTunnelIpMap.insert(pair<uint32_t, ClientList::iterator>(client.tunnelIp, clientList.begin()));
+        clientRealIpMap.insert(make_pair(realIp, clientList.begin()));
+        clientTunnelIpMap.insert(make_pair(client.tunnelIp, clientList.begin()));
     }
     else
     {
@@ -100,7 +100,7 @@ void Server::sendChallenge(ClientData *client)
     client->state = ClientData::STATE_CHALLENGE_SENT;
 }
 
-Server::ClientList::iterator Server::removeClient(ClientData *client)
+void Server::removeClient(ClientData *client)
 {
     syslog(LOG_DEBUG, "removing client: %s (%s)\n", Utility::formatIp(client->realIp).c_str(), Utility::formatIp(client->tunnelIp).c_str());
 
@@ -111,7 +111,7 @@ Server::ClientList::iterator Server::removeClient(ClientData *client)
     clientRealIpMap.erase(client->realIp);
     clientTunnelIpMap.erase(client->tunnelIp);
 
-    return clientList.erase(nr);
+    clientList.erase(nr);
 }
 
 void Server::checkChallenge(ClientData *client, int length)
@@ -144,7 +144,7 @@ void Server::sendReset(ClientData *client)
     sendEchoToClient(client, TunnelHeader::TYPE_RESET_CONNECTION, 0);
 }
 
-bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq)
 {
     if (reply)
         return false;
@@ -215,7 +215,7 @@ Server::ClientData *Server::getClientByTunnelIp(uint32_t ip)
     return &(*(clientMapIterator->second));
 }
 
-Server::ClientData *Server::getClientByRealIp(struct in6_addr ip)
+Server::ClientData *Server::getClientByRealIp(const in6_addr_union& ip)
 {
     ClientIpMap::iterator clientMapIterator = clientRealIpMap.find(ip);
     if (clientMapIterator == clientRealIpMap.end())
@@ -307,13 +307,13 @@ void Server::handleTimeout()
     while (i != n)
     {
         ClientData *client = &(*i);
+        ++i;
 
         if (client->lastActivity + KEEP_ALIVE_INTERVAL * 2 < now)
         {
             syslog(LOG_DEBUG, "client timeout: %s\n", Utility::formatIp(client->realIp).c_str());
-            i = removeClient(client);
+            removeClient(client);
         }
-        else ++i;
     }
 
     setTimeout(KEEP_ALIVE_INTERVAL);

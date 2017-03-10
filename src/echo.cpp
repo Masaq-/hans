@@ -67,15 +67,15 @@ int Echo::headerSize()
 int Echo::sendHeaderSize() { return ( v6 ? sizeof(ip6_hdr) : sizeof(IpHeader) ) + sizeof(EchoHeader); }
 int Echo::recvHeaderSize() { return ( v6 ? 0 : sizeof(IpHeader) ) + sizeof(EchoHeader); }
 
-void Echo::send(int payloadLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+void Echo::send(int payloadLength, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq)
 {
     struct sockaddr_storage target = { 0 };
     if (v6) {
         target.ss_family = AF_INET6;
-        ((sockaddr_in6*)(&target))->sin6_addr = realIp;
+        ((sockaddr_in6*)(&target))->sin6_addr = realIp.in6_addr_union_128;
     } else {
         target.ss_family = AF_INET;
-        ((sockaddr_in*)(&target))->sin_addr.s_addr = realIp.s6_addr32[3];
+        ((sockaddr_in*)(&target))->sin_addr.s_addr = realIp.in6_addr_union_32[3];
     }
 
     if (payloadLength + ( v6 ? sizeof(ip6_hdr) : sizeof(IpHeader) ) + sizeof(EchoHeader) > bufferSize)
@@ -94,7 +94,7 @@ void Echo::send(int payloadLength, struct in6_addr realIp, bool reply, uint16_t 
         syslog(LOG_ERR, "error sending icmp packet: %s", strerror(errno));
 }
 
-int Echo::receive(struct in6_addr &realIp, bool &reply, uint16_t &id, uint16_t &seq)
+int Echo::receive(in6_addr_union &realIp, bool &reply, uint16_t &id, uint16_t &seq)
 {
     struct sockaddr_storage source = { 0 };
     int source_addr_len = ( v6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in));
@@ -120,13 +120,13 @@ int Echo::receive(struct in6_addr &realIp, bool &reply, uint16_t &id, uint16_t &
         return -1;
 
     if (v6) {
-        realIp = ((sockaddr_in6*)(&source))->sin6_addr;
+        realIp.in6_addr_union_128 = ((sockaddr_in6*)(&source))->sin6_addr;
     } else {
-        realIp.s6_addr32[0] = 0;
-        realIp.s6_addr32[1] = 0;
-        realIp.s6_addr16[4] = 0;
-        realIp.s6_addr16[5] = 0xffff;
-        realIp.s6_addr32[3] = ((sockaddr_in*)(&source))->sin_addr.s_addr;
+        realIp.in6_addr_union_32[0] = 0;
+        realIp.in6_addr_union_32[1] = 0;
+        realIp.in6_addr_union_16[4] = 0;
+        realIp.in6_addr_union_16[5] = 0xffff;
+        realIp.in6_addr_union_32[3] = ((sockaddr_in*)(&source))->sin_addr.s_addr;
     }
     reply = header->type == ( v6 ? 129 : 0 );
     id = ntohs(header->id);

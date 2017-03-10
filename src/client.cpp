@@ -32,7 +32,7 @@ using namespace std;
 
 const Worker::TunnelHeader::Magic Client::magic("hanc");
 
-Client::Client(int tunnelMtu, const char *deviceName, struct in6_addr serverIp,
+Client::Client(int tunnelMtu, const char *deviceName, const in6_addr_union& serverIp,
                int maxPolls, const char *passphrase, uid_t uid, gid_t gid,
                bool changeEchoId, bool changeEchoSeq, uint32_t desiredIp, bool ICMPv6)
 : Worker(tunnelMtu, deviceName, false, uid, gid, !ICMPv6, ICMPv6), auth(passphrase)
@@ -89,11 +89,16 @@ void Client::sendChallengeResponse(int dataLength)
     setTimeout(5000);
 }
 
-bool Client::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+bool Client::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLength, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq)
 {
-    for (int i = 0 ; i < 4 ; ++i)
-        if (realIp.s6_addr32[i] != serverIp.s6_addr32[i])
-            return false;
+    if (realIp.in6_addr_union_32[3] != serverIp.in6_addr_union_32[3])
+        return false;
+    if (realIp.in6_addr_union_32[2] != serverIp.in6_addr_union_32[2])
+        return false;
+    if (realIp.in6_addr_union_32[1] != serverIp.in6_addr_union_32[1])
+        return false;
+    if (realIp.in6_addr_union_32[0] != serverIp.in6_addr_union_32[0])
+        return false;
 
     if (!reply)
         return false;

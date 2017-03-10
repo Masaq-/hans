@@ -25,12 +25,12 @@
 
 using namespace std;
 
-string Utility::formatIp(struct in6_addr ip)
+string Utility::formatIp(const in6_addr_union& ip)
 {
-    if (ip.s6_addr32[0] == 0 && ip.s6_addr32[1] == 0 && ip.s6_addr16[4] == 0 && ip.s6_addr16[5] == 0xffff)
-        return formatIp(ntohl(ip.s6_addr32[3]));
+    if (ip.in6_addr_union_32[0] == 0 && ip.in6_addr_union_32[1] == 0 && ip.in6_addr_union_16[4] == 0 && ip.in6_addr_union_16[5] == 0xffff)
+        return formatIp(ntohl(ip.in6_addr_union_32[3]));
     char buffer[40];
-    sprintf(buffer, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ip.s6_addr[0],ip.s6_addr[1],ip.s6_addr[2],ip.s6_addr[3],ip.s6_addr[4],ip.s6_addr[5],ip.s6_addr[6],ip.s6_addr[7],ip.s6_addr[8],ip.s6_addr[9],ip.s6_addr[10],ip.s6_addr[11],ip.s6_addr[12],ip.s6_addr[13],ip.s6_addr[14],ip.s6_addr[15]);
+    sprintf(buffer, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ip.in6_addr_union_8[0],ip.in6_addr_union_8[1],ip.in6_addr_union_8[2],ip.in6_addr_union_8[3],ip.in6_addr_union_8[4],ip.in6_addr_union_8[5],ip.in6_addr_union_8[6],ip.in6_addr_union_8[7],ip.in6_addr_union_8[8],ip.in6_addr_union_8[9],ip.in6_addr_union_8[10],ip.in6_addr_union_8[11],ip.in6_addr_union_8[12],ip.in6_addr_union_8[13],ip.in6_addr_union_8[14],ip.in6_addr_union_8[15]);
     return buffer;
 }
 

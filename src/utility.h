@@ -24,10 +24,18 @@
 #include <string>
 #include <stdint.h>
 
+union in6_addr_union
+{
+    uint8_t  in6_addr_union_8[16];
+    uint16_t in6_addr_union_16[8];
+    uint32_t in6_addr_union_32[4];
+    in6_addr in6_addr_union_128;
+};
+
 class Utility
 {
 public:
-    static std::string formatIp(struct in6_addr ip);
+    static std::string formatIp(const in6_addr_union& ip);
     static std::string formatIp(uint32_t ip);
     static int rand();
 };

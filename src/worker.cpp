@@ -82,7 +82,7 @@ Worker::~Worker()
     delete tun;
 }
 
-void Worker::sendEcho(Echo* echo, const TunnelHeader::Magic &magic, int type, int length, struct in6_addr realIp, bool reply, uint16_t id, uint16_t seq)
+void Worker::sendEcho(Echo* echo, const TunnelHeader::Magic &magic, int type, int length, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq)
 {
     if (length > payloadBufferSize())
         throw Exception("packet too big");
@@ -156,7 +156,7 @@ void Worker::run()
         {
             bool reply;
             uint16_t id, seq;
-            struct in6_addr ip;
+            in6_addr_union ip;
 
             int dataLength = echo[e]->receive(ip, reply, id, seq);
             if (dataLength != -1)
