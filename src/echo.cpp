@@ -87,7 +87,7 @@ void Echo::send(int payloadLength, const in6_addr_union& realIp, bool reply, uin
     header->id = htons(id);
     header->seq = htons(seq);
     header->chksum = 0;
-    header->chksum = icmpChecksum(sendBuffer + (v6 ? sizeof(ip6_hdr) : sizeof(IpHeader)), payloadLength + sizeof(EchoHeader));
+    if (!v6) header->chksum = icmpChecksum(sendBuffer + sizeof(IpHeader), payloadLength + sizeof(EchoHeader));
 
     int result = sendto(fd, sendBuffer + (v6 ? sizeof(ip6_hdr) : sizeof(IpHeader)), payloadLength + sizeof(EchoHeader), 0, (struct sockaddr *)&target, (v6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in)));
     if (result == -1)
