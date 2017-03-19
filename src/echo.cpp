@@ -64,8 +64,8 @@ int Echo::headerSize()
     return sizeof(ip6_hdr) + sizeof(EchoHeader);
 }
 
-int Echo::sendHeaderSize() { return ( v6 ? 0 : sizeof(IpHeader) ) + sizeof(EchoHeader); }
-int Echo::recvHeaderSize() { return ( v6 ? 0 : sizeof(IpHeader) ) + sizeof(EchoHeader); }
+int Echo::sendHeaderSize() { return ( v6 ? sizeof(ip6_hdr) : sizeof(IpHeader) ) + sizeof(EchoHeader); }
+int Echo::recvHeaderSize() { return ( v6 ? sizeof(ip6_hdr) : sizeof(IpHeader) ) + sizeof(EchoHeader); }
 
 void Echo::send(int payloadLength, const in6_addr_union& realIp, bool reply, uint16_t id, uint16_t seq)
 {
@@ -78,10 +78,10 @@ void Echo::send(int payloadLength, const in6_addr_union& realIp, bool reply, uin
         ((sockaddr_in*)(&target))->sin_addr.s_addr = realIp.in6_addr_union_32[3];
     }
 
-    if (payloadLength + ( v6 ? 0 : sizeof(IpHeader) ) + sizeof(EchoHeader) > bufferSize)
+    if (payloadLength + ( v6 ? sizeof(ip6_hdr) : sizeof(IpHeader) ) + sizeof(EchoHeader) > bufferSize)
         throw Exception("packet too big");
 
-    EchoHeader *header = (EchoHeader *)(sendBuffer + (v6 ? 0 : sizeof(IpHeader)));
+    EchoHeader *header = (EchoHeader *)(sendBuffer + (v6 ? sizeof(ip6_hdr) : sizeof(IpHeader)));
     header->type = reply ? ( v6 ? 129 : 0 ) : ( v6 ? 128 : 8 );
     header->code = 0;
     header->id = htons(id);
@@ -89,7 +89,7 @@ void Echo::send(int payloadLength, const in6_addr_union& realIp, bool reply, uin
     header->chksum = 0;
     if (!v6) header->chksum = icmpChecksum(sendBuffer + sizeof(IpHeader), payloadLength + sizeof(EchoHeader));
 
-    int result = sendto(fd, sendBuffer + (v6 ? 0 : sizeof(IpHeader)), payloadLength + sizeof(EchoHeader), 0, (struct sockaddr *)&target, (v6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in)));
+    int result = sendto(fd, sendBuffer + (v6 ? sizeof(ip6_hdr) : sizeof(IpHeader)), payloadLength + sizeof(EchoHeader), 0, (struct sockaddr *)&target, (v6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in)));
     if (result == -1)
         syslog(LOG_ERR, "error sending icmp packet: %s", strerror(errno));
 }
@@ -99,7 +99,7 @@ int Echo::receive(in6_addr_union &realIp, bool &reply, uint16_t &id, uint16_t &s
     struct sockaddr_storage source = { 0 };
     int source_addr_len = ( v6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in));
 
-    int dataLength = recvfrom(fd, receiveBuffer, bufferSize, 0, (struct sockaddr *)&source, (socklen_t *)&source_addr_len);
+    int dataLength = recvfrom(fd, receiveBuffer + ( v6 ? sizeof(ip6_hdr) : 0 ), bufferSize - ( v6 ? sizeof(ip6_hdr) : 0 ), 0, (struct sockaddr *)&source, (socklen_t *)&source_addr_len);
     if (dataLength == -1)
     {
         syslog(LOG_ERR, "error receiving icmp packet: %s", strerror(errno));
@@ -109,7 +109,7 @@ int Echo::receive(in6_addr_union &realIp, bool &reply, uint16_t &id, uint16_t &s
     if (dataLength < ( v6 ? 0 : sizeof(IpHeader)) + sizeof(EchoHeader))
         return -1;
 
-    EchoHeader *header = (EchoHeader *)(receiveBuffer + (v6 ? 0 : sizeof(IpHeader)));
+    EchoHeader *header = (EchoHeader *)(receiveBuffer + (v6 ? sizeof(ip6_hdr) : sizeof(IpHeader)));
     if (v6 && (header->type != 129 && header->type != 128))
         return -1;
 
