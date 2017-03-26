@@ -164,7 +164,7 @@ bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLeng
         realIpEchoId.id = id;
         client = getClientByRealIp(realIpEchoId);
     }
-    if (client == NULL && trackEchoSeq) {
+    if (client == NULL && trackEchoSeq && seq != id) {
         realIpEchoId.id = seq;
         client = getClientByRealIp(realIpEchoId);
     }
@@ -178,8 +178,9 @@ bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLeng
         if (trackEchoId) {
             realIpEchoId.id = id;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
+            if (seq == id) return true;
         }
-        if (trackEchoSeq && seq != id) {
+        if (trackEchoSeq) {
             realIpEchoId.id = seq;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
         }
