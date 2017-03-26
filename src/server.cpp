@@ -179,7 +179,7 @@ bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLeng
             realIpEchoId.id = id;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
         }
-        if (trackEchoSeq) {
+        if (trackEchoSeq && seq != id) {
             realIpEchoId.id = seq;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
         }
