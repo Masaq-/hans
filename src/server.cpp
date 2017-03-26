@@ -160,11 +160,11 @@ bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLeng
     if (!trackEchoId && !trackEchoSeq) {
         client = getClientByRealIp(realIpEchoId);
     }
-    if (client == NULL && trackEchoId) {
+    if (trackEchoId) {
         realIpEchoId.id = id;
         client = getClientByRealIp(realIpEchoId);
     }
-    if (client == NULL && trackEchoSeq && seq != id) {
+    if (trackEchoSeq && (!trackEchoId || (client == NULL && seq != id))) {
         realIpEchoId.id = seq;
         client = getClientByRealIp(realIpEchoId);
     }
