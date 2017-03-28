@@ -157,31 +157,31 @@ bool Server::handleEchoData(Echo* echo, const TunnelHeader &header, int dataLeng
     realIpEchoId.id = 0;
 
     ClientData *client = NULL;
-    if (!trackEchoId && !trackEchoSeq) {
+    if (!trackEchoSeq && !trackEchoId) {
         client = getClientByRealIp(realIpEchoId);
     }
-    if (trackEchoId) {
-        realIpEchoId.id = id;
-        client = getClientByRealIp(realIpEchoId);
-    }
-    if (trackEchoSeq && (!trackEchoId || (client == NULL && seq != id))) {
+    if (trackEchoSeq) {
         realIpEchoId.id = seq;
+        client = getClientByRealIp(realIpEchoId);
+    }
+    if (trackEchoId && (!trackEchoSeq || (client == NULL && seq != id))) {
+        realIpEchoId.id = id;
         client = getClientByRealIp(realIpEchoId);
     }
     if (client == NULL)
     {
         Auth::Challenge challenge = auth.generateChallenge(CHALLENGE_SIZE);
-        if (!trackEchoId && !trackEchoSeq) {
+        if (!trackEchoSeq && !trackEchoId) {
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
             return true;
         }
-        if (trackEchoId) {
-            realIpEchoId.id = id;
+        if (trackEchoSeq) {
+            realIpEchoId.id = seq;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
             if (seq == id) return true;
         }
-        if (trackEchoSeq) {
-            realIpEchoId.id = seq;
+        if (trackEchoId) {
+            realIpEchoId.id = id;
             handleUnknownClient(echo, header, dataLength, realIpEchoId, id, seq, challenge);
         }
         return true;
